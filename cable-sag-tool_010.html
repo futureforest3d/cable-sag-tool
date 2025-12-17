@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Cable Sag Tool</title>
+    <style>
+        body { font-family: Arial; background: #f5f5f5; padding: 10px; }
+        h1 { text-align: center; background: #2c3e50; color: white; padding: 15px; }
+        .main { display: flex; gap: 10px; max-width: 1600px; margin: 0 auto; }
+        #canvas { border: 2px solid #333; background: white; }
+        .controls { background: white; padding: 15px; border-radius: 5px; margin-top: 10px; }
+        .row { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
+        .group { flex: 1; min-width: 140px; }
+        .group label { display: block; font-weight: bold; font-size: 12px; margin-bottom: 3px; }
+        .group input[type="range"] { width: 100%; }
+        .bulb-panel { background: #e8e8e8; padding: 15px; min-width: 350px; max-width: 350px; }
+        .bulb-part { display: flex; justify-content: space-between; margin-bottom: 5px; }
+        .bulb-part input { width: 80px; text-align: right; }
+        .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 5px; }
+        .btn-save { background: #4CAF50; color: white; }
+        .btn-load { background: #2196F3; color: white; }
+    </style>
+</head>
+<body>
+    <h1>Cable Sag Analysis Tool</h1>
+    <div class="main">
+        <div style="flex:1">
+            <canvas id="canvas" width="920" height="460"></canvas>
+            <div class="controls">
+                <div class="row">
+                    <div class="group">
+                        <label>Span (m): <span id="v1">50</span></label>
+                        <input type="range" id="span" min="1" max="60" step="0.1" value="50">
+                    </div>
+                    <div class="group">
+                        <label>Height (m): <span id="v2">16</span></label>
+                        <input type="range" id="height" min="1" max="20" step="0.1" value="16">
+                    </div>
+                    <div class="group">
+                        <label>Cable Ø (mm): <span id="v3">10</span></label>
+                        <input type="range" id="diam" min="2" max="20" step="0.1" value="10">
+                    </div>
+                    <div class="group">
+                        <label>Tension (kN): <span id="v4">6.5</span></label>
+                        <input type="range" id="tension" min="1" max="100" step="0.1" value="6.5">
+                    </div>
+                    <div class="group">
+                        <label>Instances: <span id="v5">82</span></label>
+                        <input type="range" id="instances" min="0" max="120" value="82">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="group">
+                        <label>Bulb Height (m): <span id="v6">2</span></label>
+                        <input type="range" id="bulb-h" min="0" max="20" step="0.01" value="2">
+                    </div>
+                    <div class="group">
+                        <label>Pan X: <span id="v7">0</span></label>
+                        <input type="range" id="pan-x" min="-1" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="group">
+                        <label>Pan Y: <span id="v8">0</span></label>
+                        <input type="range" id="pan-y" min="-1" max="1" step="0.01" value="0">
+                    </div>
+                    <div class="group">
+                        <label>Zoom: <span id="v9">1</span></label>
+                        <input type="range" id="zoom" min="0.5" max="1.5" step="0.01" value="1">
+                    </div>
+                </div>
+                <div style="margin: 10px 0;">
+                    <strong>Bulb Cable Mode:</strong>
+                    <label><input type="radio" name="mode" value="flat" checked> Flat Height</label>
+                    <label><input type="radio" name="mode" value="curve"> Sine Curve</label>
+                </div>
+                <div id="flat-ctrl">
+                    <!-- Flat controls already above -->
+                </div>
+                <div id="curve-ctrl" style="display:none;">
+                    <div class="row">
+                        <div class="group">
+                            <label>Curve Height (m): <span id="v10">3</span></label>
+                            <input type="range" id="curve-amp" min="0" max="10" step="0.1" value="3">
+                        </div>
+                        <div class="group">
+                            <label>Offset X (m): <span id="v11">0</span></label>
+                            <input type="range" id="curve-offset" min="-30" max="30" step="0.1" value="0">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="group">
+                            <label>Curve Width: <span id="v12">1</span></label>
+                            <input type="range" id="curve-freq" min="0.1" max="3" step="0.1" value="1">
+                        </div>
+                        <div class="group">
+                            <label>Base Height (m): <span id="v13">1</span></label>
+                            <input type="range" id="curve-base" min="0" max="15" step="0.1" value="1">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="bulb-panel">
+            <h3>Bulb Parts</h3>
+            <div style="text-align:center; margin: 10px;">
+                <button onclick="prevId()">◀</button>
+                ID: <span id="curr-id">0</span>
+                <button onclick="nextId()">▶</button>
+            </div>
+            <div class="bulb-part"><label>PCB (kg)</label><input type="number" id="pcb" value="0.050" step="0.001"></div>
+            <div class="bulb-part"><label>Housing (kg)</label><input type="number" id="housing" value="0.120" step="0.001"></div>
+            <div class="bulb-part"><label>Connectors (kg)</label><input type="number" id="conn" value="0.035" step="0.001"></div>
+            <div class="bulb-part"><label>Ethernet (kg)</label><input type="number" id="eth" value="0.025" step="0.001"></div>
+            <div class="bulb-part"><label>Socket (kg)</label><input type="number" id="socket" value="0.045" step="0.001"></div>
+            <div class="bulb-part"><label>Bulb (kg)</label><input type="number" id="bulb" value="0.065" step="0.001"></div>
+            <div class="bulb-part"><label>Cable/M (kg)</label><input type="text" id="cable-w" readonly style="background:#f0f0f0"></div>
+            <div style="text-align:center; margin:10px;"><label>g/m: <input type="number" id="gpm" value="50" style="width:60px"></label></div>
+            <div style="text-align:center; margin:10px;"><strong>Cable Len: </strong><span id="cable-len">0</span> m</div>
+            <div style="text-align:center; margin:10px; color:blue;"><strong>Total: </strong><span id="total">0</span> kg</div>
+            <div style="background:white; padding:10px; margin:10px 0; border:2px solid #666;">
+                <strong>Force Analysis</strong>
+                <div>Load: <span id="f1">0</span> kg</div>
+                <div>Force: <span id="f2">0</span> kN</div>
+                <div>Cable: <span id="f3">0</span> kg</div>
+                <div>Instances: <span id="f4">0</span> kg</div>
+            </div>
+            <div style="text-align:center;">
+                <button class="btn btn-save" onclick="save()">Save</button>
+                <button class="btn btn-load" onclick="load()">Load</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        console.log('Script starting...');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        let cw = [], cl = [], cid = 0;
+        const STEEL = 7850, G = 9.81;
+        
+        function v(id) { return parseFloat(document.getElementById(id).value); }
+        function upd(id, val) { const e = document.getElementById(id); if(e) e.textContent = parseFloat(val).toFixed(2); }
+        
+        function getTargetH(x, L) {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            if (mode === 'flat') {
+                return Math.min(v('bulb-h'), v('height'));
+            } else {
+                const amp = v('curve-amp'), freq = v('curve-freq');
+                const offset = v('curve-offset'), base = v('curve-base');
+                const xAdj = x - offset, xNorm = xAdj / L;
+                return Math.max(0, base + amp * Math.sin(2 * Math.PI * freq * xNorm));
+            }
+        }
+        
+        function defl(L, d, H, w) {
+            const dm = d/1000, A = Math.PI*(dm/2)**2;
+            const wc = STEEL*A*G, wi = w.length ? w.reduce((a,b)=>a+b)*G/L : 0;
+            return ((wc+wi)*L*L)/(8*H*1000);
+        }
+        
+        function calc() {
+            const L=v('span'), h=v('height'), d=v('diam'), H=v('tension'), n=parseInt(v('instances'));
+            const gpm=v('gpm');
+            const base = v('pcb')+v('housing')+v('conn')+v('eth')+v('socket')+v('bulb');
+            let delta = 0;
+            for(let it=0; it<3; it++) {
+                cl=[]; cw=[];
+                for(let i=0; i<n; i++) {
+                    const t=(i+1)/(n+1), x=L*t, dx=(x-L/2)/(L/2);
+                    const y = h-delta*(1-dx*dx);
+                    const targetH = getTargetH(x, L);
+                    const len = Math.max(0, y-targetH);
+                    cl.push(len);
+                    cw.push(base + (gpm/1000)*len);
+                }
+                if(n>0) delta = defl(L,d,H,cw);
+            }
+            cid = n>0 ? Math.min(cid, n-1) : 0;
+            updCable();
+            draw();
+        }
+        
+        function updCable() {
+            if(cid < cl.length) {
+                const len=cl[cid], gpm=v('gpm'), w=(gpm/1000)*len;
+                document.getElementById('cable-len').textContent = len.toFixed(3);
+                document.getElementById('cable-w').value = w.toFixed(3);
+            } else {
+                document.getElementById('cable-len').textContent = '0.000';
+                document.getElementById('cable-w').value = '0.000';
+            }
+            const tot = v('pcb')+v('housing')+v('conn')+v('eth')+v('socket')+v('bulb')+parseFloat(document.getElementById('cable-w').value||0);
+            document.getElementById('total').textContent = tot.toFixed(3);
+            
+            const L=v('span'), d=v('diam'), dm=d/1000, A=Math.PI*(dm/2)**2;
+            const cm = STEEL*A*L, iw = cw.reduce((a,b)=>a+b,0);
+            const tl = cm+iw, tf = (tl*G)/1000;
+            document.getElementById('f1').textContent = tl.toFixed(2);
+            document.getElementById('f2').textContent = tf.toFixed(2);
+            document.getElementById('f3').textContent = cm.toFixed(2);
+            document.getElementById('f4').textContent = iw.toFixed(2);
+        }
+        
+        function draw() {
+            ctx.clearRect(0,0,920,460);
+            const L=v('span'), h=v('height'), d=v('diam'), H=v('tension'), n=parseInt(v('instances'));
+            const delta = cw.length ? defl(L,d,H,cw) : 0;
+            const cl = h-delta, th = h+delta;
+            const LEFT=120, RIGHT=60, TOP=40, BOT=80;
+            const bs = Math.min((920-LEFT-RIGHT)/L, (460-TOP-BOT)/th);
+            const sc = bs*v('zoom'), px=v('pan-x')*L*sc, py=v('pan-y')*th*sc;
+            const X = x => LEFT+x*sc+px;
+            const Y = y => 460-BOT-y*sc+py;
+            const lx=X(0), rx=X(L), gy=Y(0), ty=Y(h), ly=Y(cl);
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            
+            ctx.strokeStyle='#888'; ctx.lineWidth=2;
+            ctx.beginPath(); ctx.moveTo(lx-60,gy); ctx.lineTo(rx+60,gy); ctx.stroke();
+            
+            ctx.fillStyle='black';
+            ctx.fillRect(lx-3,ty,6,gy-ty); ctx.fillRect(rx-3,ty,6,gy-ty);
+            
+            ctx.strokeStyle='#aaa'; ctx.setLineDash([4,4]);
+            ctx.beginPath(); ctx.moveTo(lx,ty); ctx.lineTo(rx,ty); ctx.stroke(); ctx.setLineDash([]);
+            
+            ctx.strokeStyle='blue'; ctx.lineWidth=2; ctx.beginPath();
+            for(let i=0; i<=200; i++) {
+                const t=i/200, x=L*t, dx=(x-L/2)/(L/2), y=h-delta*(1-dx*dx);
+                if(i==0) ctx.moveTo(X(x),Y(y)); else ctx.lineTo(X(x),Y(y));
+            }
+            ctx.stroke();
+            
+            ctx.strokeStyle='green'; ctx.lineWidth=2;
+            if(mode==='flat') ctx.setLineDash([6,4]);
+            ctx.beginPath();
+            for(let i=0; i<=200; i++) {
+                const t=i/200, x=L*t, targetH = getTargetH(x, L);
+                if(i==0) ctx.moveTo(X(x),Y(targetH)); else ctx.lineTo(X(x),Y(targetH));
+            }
+            ctx.stroke(); ctx.setLineDash([]);
+            
+            for(let i=0; i<n; i++) {
+                const t=(i+1)/(n+1), x=L*t, dx=(x-L/2)/(L/2), y=h-delta*(1-dx*dx);
+                const targetH = getTargetH(x, L);
+                const cx=X(x), cy=Y(y), by=Y(targetH);
+                ctx.strokeStyle = i==cid?'blue':'gray'; ctx.lineWidth = i==cid?2:1;
+                ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,by); ctx.stroke();
+                ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fill();
+                ctx.fillStyle = i==cid?'blue':'black'; ctx.font = i==cid?'bold 10px Arial':'10px Arial';
+                ctx.textAlign='center'; ctx.fillText(i,cx,cy-8);
+            }
+            
+            ctx.strokeStyle='black'; ctx.fillStyle='black'; ctx.font='12px Arial'; ctx.lineWidth=1;
+            ctx.beginPath(); ctx.moveTo(lx-35,ty); ctx.lineTo(lx-35,gy); ctx.stroke();
+            ctx.textAlign='right'; ctx.fillText(h.toFixed(2)+' m',lx-41,(ty+gy)/2);
+            
+            const sy=gy+30;
+            ctx.beginPath(); ctx.moveTo(lx,sy); ctx.lineTo(rx,sy); ctx.stroke();
+            ctx.textAlign='center'; ctx.fillText(L.toFixed(2)+' m',(lx+rx)/2,sy+15);
+            
+            ctx.strokeStyle='blue'; ctx.setLineDash([4,2]);
+            ctx.beginPath(); ctx.moveTo(lx+30,ty); ctx.lineTo(lx+30,ly); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle='blue'; ctx.textAlign='left'; ctx.fillText('Defl='+delta.toFixed(2)+' m',lx+36,(ty+ly)/2);
+            
+            ctx.strokeStyle='black'; ctx.setLineDash([4,2]);
+            ctx.beginPath(); ctx.moveTo(rx+30,gy); ctx.lineTo(rx+30,ly); ctx.stroke(); ctx.setLineDash([]);
+            ctx.fillStyle='black'; ctx.fillText('Clear='+cl.toFixed(2)+' m',rx+36,(gy+ly)/2);
+        }
+        
+        function prevId() { const n=parseInt(v('instances')); if(n>0) { cid=(cid-1+n)%n; document.getElementById('curr-id').textContent=cid; updCable(); draw(); }}
+        function nextId() { const n=parseInt(v('instances')); if(n>0) { cid=(cid+1)%n; document.getElementById('curr-id').textContent=cid; updCable(); draw(); }}
+        
+        function save() {
+            const s = {span:v('span'),height:v('height'),diam:v('diam'),tension:v('tension'),instances:v('instances'),
+                bulbH:v('bulb-h'),gpm:v('gpm'),pcb:v('pcb'),housing:v('housing'),conn:v('conn'),eth:v('eth'),socket:v('socket'),bulb:v('bulb')};
+            const b = new Blob([JSON.stringify(s,null,2)],{type:'application/json'});
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(b); a.download = 'cable-sag.json'; a.click();
+        }
+        
+        function load() {
+            const inp = document.createElement('input'); inp.type='file'; inp.accept='.json';
+            inp.onchange = e => {
+                const r = new FileReader();
+                r.onload = ev => {
+                    try {
+                        const s = JSON.parse(ev.target.result);
+                        document.getElementById('span').value=s.span;
+                        document.getElementById('height').value=s.height;
+                        document.getElementById('diam').value=s.diam;
+                        document.getElementById('tension').value=s.tension;
+                        document.getElementById('instances').value=s.instances;
+                        document.getElementById('bulb-h').value=s.bulbH;
+                        document.getElementById('gpm').value=s.gpm;
+                        document.getElementById('pcb').value=s.pcb;
+                        document.getElementById('housing').value=s.housing;
+                        document.getElementById('conn').value=s.conn;
+                        document.getElementById('eth').value=s.eth;
+                        document.getElementById('socket').value=s.socket;
+                        document.getElementById('bulb').value=s.bulb;
+                        calc();
+                    } catch(err) { alert('Load error: '+err); }
+                };
+                r.readAsText(e.target.files[0]);
+            };
+            inp.click();
+        }
+        
+        ['span','height','diam','tension','instances','bulb-h'].forEach((id,i) => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', () => { upd('v'+(i+1), el.value); calc(); });
+        });
+        
+        ['curve-amp','curve-offset','curve-freq','curve-base'].forEach((id,i) => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', () => { upd('v'+(i+10), el.value); calc(); });
+        });
+        
+        document.querySelectorAll('input[name="mode"]').forEach(radio => {
+            radio.addEventListener('change', () => {
+                const isCurve = document.querySelector('input[name="mode"]:checked').value === 'curve';
+                document.getElementById('curve-ctrl').style.display = isCurve ? 'block' : 'none';
+                calc();
+            });
+        });
+        
+        ['pan-x','pan-y','zoom'].forEach((id,i) => {
+            const el = document.getElementById(id);
+            el.addEventListener('input', () => { upd('v'+(i+7), el.value); draw(); });
+        });
+        
+        ['pcb','housing','conn','eth','socket','bulb','gpm'].forEach(id => {
+            document.getElementById(id).addEventListener('input', calc);
+        });
+        
+        console.log('Running initial calc...');
+        calc();
+        console.log('Done!');
+    </script>
+</body>
+</html>
