@@ -106,6 +106,9 @@
                 ID: <span id="curr-id">0</span>
                 <button onclick="nextId()">▶</button>
             </div>
+            
+            <canvas id="bulb-diagram" width="320" height="280" style="background:white; display:block; margin:10px auto; border:1px solid #ccc;"></canvas>
+            
             <div class="bulb-part"><label>PCB (kg)</label><input type="number" id="pcb" value="0.050" step="0.001"></div>
             <div class="bulb-part"><label>Housing (kg)</label><input type="number" id="housing" value="0.120" step="0.001"></div>
             <div class="bulb-part"><label>Connectors (kg)</label><input type="number" id="conn" value="0.035" step="0.001"></div>
@@ -133,8 +136,85 @@
         console.log('Script starting...');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
+        const bulbCanvas = document.getElementById('bulb-diagram');
+        const bulbCtx = bulbCanvas.getContext('2d');
         let cw = [], cl = [], cid = 0;
         const STEEL = 7850, G = 9.81;
+        
+        function drawBulbDiagram() {
+            bulbCtx.clearRect(0, 0, 320, 280);
+            bulbCtx.strokeStyle = 'black';
+            bulbCtx.fillStyle = 'black';
+            
+            // Cable line extending up
+            bulbCtx.lineWidth = 2;
+            bulbCtx.beginPath();
+            bulbCtx.moveTo(250, 20);
+            bulbCtx.lineTo(250, 60);
+            bulbCtx.stroke();
+            bulbCtx.beginPath();
+            bulbCtx.moveTo(230, 60);
+            bulbCtx.lineTo(270, 60);
+            bulbCtx.stroke();
+            
+            // Socket (cylindrical top)
+            bulbCtx.fillStyle = '#d0d0d0';
+            bulbCtx.fillRect(235, 60, 30, 40);
+            bulbCtx.strokeRect(235, 60, 30, 40);
+            
+            // Bulb (rounded bottom)
+            bulbCtx.fillStyle = '#ffffcc';
+            bulbCtx.beginPath();
+            bulbCtx.ellipse(250, 120, 30, 30, 0, 0, 2 * Math.PI);
+            bulbCtx.fill();
+            bulbCtx.stroke();
+            
+            // Internal filament
+            bulbCtx.strokeStyle = 'gray';
+            bulbCtx.lineWidth = 1;
+            bulbCtx.beginPath();
+            bulbCtx.moveTo(240, 110);
+            bulbCtx.lineTo(250, 125);
+            bulbCtx.lineTo(260, 110);
+            bulbCtx.stroke();
+            
+            // Housing/PCB area at top
+            bulbCtx.fillStyle = '#666';
+            bulbCtx.fillRect(240, 40, 20, 20);
+            bulbCtx.strokeRect(240, 40, 20, 20);
+            
+            // Labels with arrows
+            bulbCtx.fillStyle = 'black';
+            bulbCtx.strokeStyle = 'black';
+            bulbCtx.font = '9px Arial';
+            bulbCtx.lineWidth = 1;
+            
+            const labels = [
+                [150, 45, 240, 50, 'PCB'],
+                [150, 75, 235, 70, 'Housing'],
+                [140, 105, 220, 95, 'Connectors'],
+                [130, 135, 220, 120, 'Ethernet'],
+                [120, 165, 230, 60, 'Cable/M'],
+                [130, 195, 235, 80, 'Socket'],
+                [140, 225, 240, 130, 'Bulb']
+            ];
+            
+            labels.forEach(([lx, ly, px, py, text]) => {
+                bulbCtx.beginPath();
+                bulbCtx.moveTo(lx + 70, ly);
+                bulbCtx.lineTo(px, py);
+                bulbCtx.stroke();
+                // Arrow head
+                const angle = Math.atan2(py - ly, px - (lx + 70));
+                bulbCtx.beginPath();
+                bulbCtx.moveTo(px, py);
+                bulbCtx.lineTo(px - 8 * Math.cos(angle - Math.PI / 6), py - 8 * Math.sin(angle - Math.PI / 6));
+                bulbCtx.moveTo(px, py);
+                bulbCtx.lineTo(px - 8 * Math.cos(angle + Math.PI / 6), py - 8 * Math.sin(angle + Math.PI / 6));
+                bulbCtx.stroke();
+                bulbCtx.fillText(text, lx, ly);
+            });
+        }
         
         function v(id) { return parseFloat(document.getElementById(id).value); }
         function upd(id, val) { const e = document.getElementById(id); if(e) e.textContent = parseFloat(val).toFixed(2); }
@@ -284,21 +364,53 @@
                 r.onload = ev => {
                     try {
                         const s = JSON.parse(ev.target.result);
-                        document.getElementById('span').value=s.span;
-                        document.getElementById('height').value=s.height;
-                        document.getElementById('diam').value=s.diam;
-                        document.getElementById('tension').value=s.tension;
-                        document.getElementById('instances').value=s.instances;
-                        document.getElementById('bulb-h').value=s.bulbH;
-                        document.getElementById('gpm').value=s.gpm;
-                        document.getElementById('pcb').value=s.pcb;
-                        document.getElementById('housing').value=s.housing;
-                        document.getElementById('conn').value=s.conn;
-                        document.getElementById('eth').value=s.eth;
-                        document.getElementById('socket').value=s.socket;
-                        document.getElementById('bulb').value=s.bulb;
+                        
+                        // Handle both web format and Python format
+                        document.getElementById('span').value = s.span;
+                        document.getElementById('height').value = s.height;
+                        document.getElementById('diam').value = s.diameter || s.diam;
+                        document.getElementById('tension').value = s.tension;
+                        document.getElementById('instances').value = s.instances;
+                        
+                        // Handle mode
+                        if (s.bulb_cable_mode !== undefined) {
+                            // Python format: 0=flat, 1=curve
+                            const mode = s.bulb_cable_mode === 0 ? 'flat' : 'curve';
+                            document.querySelector(`input[name="mode"][value="${mode}"]`).checked = true;
+                            document.getElementById('curve-ctrl').style.display = mode === 'curve' ? 'block' : 'none';
+                        } else if (s.mode) {
+                            // Web format
+                            document.querySelector(`input[name="mode"][value="${s.mode}"]`).checked = true;
+                            document.getElementById('curve-ctrl').style.display = s.mode === 'curve' ? 'block' : 'none';
+                        }
+                        
+                        // Bulb height
+                        document.getElementById('bulb-h').value = s.bulbH || s.bulb_height || 2;
+                        
+                        // Curve parameters
+                        document.getElementById('curve-amp').value = s.curveAmp || s.curve_amplitude || 3;
+                        document.getElementById('curve-offset').value = s.curveOffset || s.curve_offset_x || 0;
+                        document.getElementById('curve-freq').value = s.curveFreq || s.curve_frequency || 1;
+                        document.getElementById('curve-base').value = s.curveBase || s.curve_base_height || 1;
+                        
+                        // Grams per meter
+                        document.getElementById('gpm').value = s.gpm || s.gramsPerMeter || s.grams_per_meter || 50;
+                        
+                        // Bulb parts - handle both formats
+                        const parts = s.bulbParts || s.bulb_parts || {};
+                        document.getElementById('pcb').value = parts.pcb || parts.PCB || 0.05;
+                        document.getElementById('housing').value = parts.housing || parts.Housing || 0.12;
+                        document.getElementById('conn').value = parts.conn || parts.connectors || parts.Connectors || 0.035;
+                        document.getElementById('eth').value = parts.eth || parts.ethernet || parts.Ethernet || 0.025;
+                        document.getElementById('socket').value = parts.socket || parts.Socket || 0.045;
+                        document.getElementById('bulb').value = parts.bulb || parts.Bulb || 0.065;
+                        
                         calc();
-                    } catch(err) { alert('Load error: '+err); }
+                        alert('Settings loaded successfully!');
+                    } catch(err) { 
+                        alert('Load error: ' + err.message); 
+                        console.error('Load error:', err);
+                    }
                 };
                 r.readAsText(e.target.files[0]);
             };
@@ -333,6 +445,7 @@
         });
         
         console.log('Running initial calc...');
+        drawBulbDiagram();
         calc();
         console.log('Done!');
     </script>
