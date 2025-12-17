@@ -13,87 +13,169 @@
         .group { flex: 1; min-width: 140px; }
         .group label { display: block; font-weight: bold; font-size: 12px; margin-bottom: 3px; }
         .group input[type="range"] { width: 100%; }
+        .group input[type="number"] { width: 80px; margin-top: 3px; }
         .bulb-panel { background: #e8e8e8; padding: 15px; min-width: 350px; max-width: 350px; }
         .bulb-part { display: flex; justify-content: space-between; margin-bottom: 5px; }
         .bulb-part input { width: 80px; text-align: right; }
         .btn { padding: 8px 16px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; margin: 5px; }
         .btn-save { background: #4CAF50; color: white; }
         .btn-load { background: #2196F3; color: white; }
+        .btn-export { background: #FF9800; color: white; }
+        .mode-controls { background: #f0f8ff; padding: 10px; border-radius: 5px; margin-top: 10px; border: 1px solid #ccc; }
+        .canvas-container { position: relative; display: inline-block; }
+        .pan-x-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+            margin-top: 5px;
+            padding: 5px;
+            background: #eee;
+            border-radius: 3px;
+        }
+        .pan-x-container input[type="range"] { flex: 1; }
+        .pan-x-container input[type="number"] { width: 60px; }
+        .zoom-container { 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+            margin-top: 5px;
+            padding: 5px;
+            background: #ddd;
+            border-radius: 3px;
+        }
+        .zoom-container input[type="range"] { flex: 1; }
+        .zoom-container input[type="number"] { width: 60px; }
+        .pan-y-container {
+            position: absolute;
+            right: -45px;
+            top: 0;
+            height: 460px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 5px;
+            background: #eee;
+            border-radius: 3px;
+            width: 40px;
+        }
+        .pan-y-container input[type="range"] {
+            writing-mode: vertical-lr;
+            direction: rtl;
+            height: 380px;
+            width: 20px;
+        }
+        .pan-y-container input[type="number"] { 
+            width: 40px; 
+            font-size: 10px;
+            margin-top: 5px;
+        }
+        .pan-y-container label {
+            font-size: 10px;
+            font-weight: bold;
+        }
+        .id-input-container { display: flex; align-items: center; justify-content: center; gap: 5px; }
+        .id-input-container input[type="number"] { width: 50px; text-align: center; }
     </style>
 </head>
 <body>
     <h1>Cable Sag Analysis Tool</h1>
     <div class="main">
         <div style="flex:1">
-            <canvas id="canvas" width="920" height="460"></canvas>
+            <div class="canvas-container">
+                <canvas id="canvas" width="920" height="460"></canvas>
+                <div class="pan-y-container">
+                    <label>Pan Y</label>
+                    <input type="range" id="pan-y" min="-1" max="1" step="0.01" value="0">
+                    <input type="number" id="pan-y-num" min="-1" max="1" step="0.01" value="0">
+                </div>
+            </div>
+            
+            <!-- Pan X below canvas -->
+            <div class="pan-x-container" style="width: 920px;">
+                <label style="font-weight: bold; font-size: 12px; white-space: nowrap;">Pan X:</label>
+                <input type="range" id="pan-x" min="-1" max="1" step="0.01" value="0">
+                <input type="number" id="pan-x-num" min="-1" max="1" step="0.01" value="0">
+            </div>
+            
+            <!-- Zoom below Pan X -->
+            <div class="zoom-container" style="width: 920px;">
+                <label style="font-weight: bold; font-size: 12px; white-space: nowrap;">Zoom:</label>
+                <input type="range" id="zoom" min="0.5" max="1.5" step="0.01" value="1">
+                <input type="number" id="zoom-num" min="0.5" max="1.5" step="0.01" value="1">
+            </div>
+            
             <div class="controls">
                 <div class="row">
                     <div class="group">
-                        <label>Span (m): <span id="v1">50</span></label>
+                        <label>Span (m):</label>
                         <input type="range" id="span" min="1" max="60" step="0.1" value="50">
+                        <input type="number" id="span-num" min="1" max="60" step="0.1" value="50">
                     </div>
                     <div class="group">
-                        <label>Height (m): <span id="v2">16</span></label>
+                        <label>Height (m):</label>
                         <input type="range" id="height" min="1" max="20" step="0.1" value="16">
+                        <input type="number" id="height-num" min="1" max="20" step="0.1" value="16">
                     </div>
                     <div class="group">
-                        <label>Cable Ø (mm): <span id="v3">10</span></label>
+                        <label>Cable Ø (mm):</label>
                         <input type="range" id="diam" min="2" max="20" step="0.1" value="10">
+                        <input type="number" id="diam-num" min="2" max="20" step="0.1" value="10">
                     </div>
                     <div class="group">
-                        <label>Tension (kN): <span id="v4">6.5</span></label>
-                        <input type="range" id="tension" min="1" max="100" step="0.1" value="6.5">
+                        <label>Tension (kN):</label>
+                        <input type="range" id="tension" min="0" max="100" step="0.1" value="6.5">
+                        <input type="number" id="tension-num" min="0" max="100" step="0.1" value="6.5">
                     </div>
                     <div class="group">
-                        <label>Instances: <span id="v5">82</span></label>
+                        <label>Instances:</label>
                         <input type="range" id="instances" min="0" max="120" value="82">
+                        <input type="number" id="instances-num" min="0" max="120" step="1" value="82">
                     </div>
                 </div>
-                <div class="row">
-                    <div class="group">
-                        <label>Bulb Height (m): <span id="v6">2</span></label>
-                        <input type="range" id="bulb-h" min="0" max="20" step="0.01" value="2">
+                
+                <div class="mode-controls">
+                    <div style="margin-bottom: 10px;">
+                        <strong>Bulb Cable Mode:</strong>
+                        <label style="margin-left: 15px;"><input type="radio" name="mode" value="flat" checked> Flat Height</label>
+                        <label style="margin-left: 15px;"><input type="radio" name="mode" value="curve"> Sine Curve</label>
                     </div>
-                    <div class="group">
-                        <label>Pan X: <span id="v7">0</span></label>
-                        <input type="range" id="pan-x" min="-1" max="1" step="0.01" value="0">
-                    </div>
-                    <div class="group">
-                        <label>Pan Y: <span id="v8">0</span></label>
-                        <input type="range" id="pan-y" min="-1" max="1" step="0.01" value="0">
-                    </div>
-                    <div class="group">
-                        <label>Zoom: <span id="v9">1</span></label>
-                        <input type="range" id="zoom" min="0.5" max="1.5" step="0.01" value="1">
-                    </div>
-                </div>
-                <div style="margin: 10px 0;">
-                    <strong>Bulb Cable Mode:</strong>
-                    <label><input type="radio" name="mode" value="flat" checked> Flat Height</label>
-                    <label><input type="radio" name="mode" value="curve"> Sine Curve</label>
-                </div>
-                <div id="flat-ctrl">
-                    <!-- Flat controls already above -->
-                </div>
-                <div id="curve-ctrl" style="display:none;">
-                    <div class="row">
-                        <div class="group">
-                            <label>Curve Height (m): <span id="v10">3</span></label>
-                            <input type="range" id="curve-amp" min="0" max="10" step="0.1" value="3">
-                        </div>
-                        <div class="group">
-                            <label>Offset X (m): <span id="v11">0</span></label>
-                            <input type="range" id="curve-offset" min="-30" max="30" step="0.1" value="0">
+                    
+                    <!-- Flat Height Controls -->
+                    <div id="flat-ctrl">
+                        <div class="row">
+                            <div class="group">
+                                <label>Bulb Height (m):</label>
+                                <input type="range" id="bulb-h" min="0" max="20" step="0.01" value="2">
+                                <input type="number" id="bulb-h-num" min="0" max="20" step="0.01" value="2">
+                            </div>
                         </div>
                     </div>
-                    <div class="row">
-                        <div class="group">
-                            <label>Curve Width: <span id="v12">1</span></label>
-                            <input type="range" id="curve-freq" min="0.1" max="3" step="0.1" value="1">
+                    
+                    <!-- Sine Curve Controls -->
+                    <div id="curve-ctrl" style="display:none;">
+                        <div class="row">
+                            <div class="group">
+                                <label>Curve Height (m):</label>
+                                <input type="range" id="curve-amp" min="0" max="10" step="0.1" value="3">
+                                <input type="number" id="curve-amp-num" min="0" max="10" step="0.1" value="3">
+                            </div>
+                            <div class="group">
+                                <label>Offset X (m):</label>
+                                <input type="range" id="curve-offset" min="-30" max="30" step="0.1" value="0">
+                                <input type="number" id="curve-offset-num" min="-30" max="30" step="0.1" value="0">
+                            </div>
                         </div>
-                        <div class="group">
-                            <label>Base Height (m): <span id="v13">1</span></label>
-                            <input type="range" id="curve-base" min="0" max="15" step="0.1" value="1">
+                        <div class="row">
+                            <div class="group">
+                                <label>Curve Width:</label>
+                                <input type="range" id="curve-freq" min="0.1" max="3" step="0.1" value="1">
+                                <input type="number" id="curve-freq-num" min="0.1" max="3" step="0.1" value="1">
+                            </div>
+                            <div class="group">
+                                <label>Base Height (m):</label>
+                                <input type="range" id="curve-base" min="0" max="15" step="0.1" value="1">
+                                <input type="number" id="curve-base-num" min="0" max="15" step="0.1" value="1">
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -102,9 +184,12 @@
         <div class="bulb-panel">
             <h3>Bulb Parts</h3>
             <div style="text-align:center; margin: 10px;">
-                <button onclick="prevId()">◀</button>
-                ID: <span id="curr-id">0</span>
-                <button onclick="nextId()">▶</button>
+                <div class="id-input-container">
+                    <button onclick="prevId()">◀</button>
+                    <label>ID:</label>
+                    <input type="number" id="id-input" min="0" value="0">
+                    <button onclick="nextId()">▶</button>
+                </div>
             </div>
             
             <canvas id="bulb-diagram" width="320" height="280" style="background:white; display:block; margin:10px auto; border:1px solid #ccc;"></canvas>
@@ -130,6 +215,9 @@
                 <button class="btn btn-save" onclick="save()">Save</button>
                 <button class="btn btn-load" onclick="load()">Load</button>
             </div>
+            <div style="text-align:center; margin-top: 10px;">
+                <button class="btn btn-export" onclick="exportCSV()">Export CSV</button>
+            </div>
         </div>
     </div>
     <script>
@@ -139,6 +227,8 @@
         const bulbCanvas = document.getElementById('bulb-diagram');
         const bulbCtx = bulbCanvas.getContext('2d');
         let cw = [], cl = [], cid = 0;
+        // Store instance data for CSV export
+        let instanceData = [];
         const STEEL = 7850, G = 9.81;
         
         function drawBulbDiagram() {
@@ -204,7 +294,6 @@
                 bulbCtx.moveTo(lx + 70, ly);
                 bulbCtx.lineTo(px, py);
                 bulbCtx.stroke();
-                // Arrow head
                 const angle = Math.atan2(py - ly, px - (lx + 70));
                 bulbCtx.beginPath();
                 bulbCtx.moveTo(px, py);
@@ -217,7 +306,48 @@
         }
         
         function v(id) { return parseFloat(document.getElementById(id).value); }
-        function upd(id, val) { const e = document.getElementById(id); if(e) e.textContent = parseFloat(val).toFixed(2); }
+        
+        // Sync slider and number input
+        function syncInputs(sliderId, numId) {
+            const slider = document.getElementById(sliderId);
+            const num = document.getElementById(numId);
+            
+            slider.addEventListener('input', () => {
+                num.value = slider.value;
+                calc();
+            });
+            
+            num.addEventListener('input', () => {
+                let val = parseFloat(num.value);
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                if (val < min) val = min;
+                if (val > max) val = max;
+                slider.value = val;
+                calc();
+            });
+        }
+        
+        // Sync for view controls (pan/zoom) - only redraw, don't recalc
+        function syncViewInputs(sliderId, numId) {
+            const slider = document.getElementById(sliderId);
+            const num = document.getElementById(numId);
+            
+            slider.addEventListener('input', () => {
+                num.value = slider.value;
+                draw();
+            });
+            
+            num.addEventListener('input', () => {
+                let val = parseFloat(num.value);
+                const min = parseFloat(slider.min);
+                const max = parseFloat(slider.max);
+                if (val < min) val = min;
+                if (val > max) val = max;
+                slider.value = val;
+                draw();
+            });
+        }
         
         function getTargetH(x, L) {
             const mode = document.querySelector('input[name="mode"]:checked').value;
@@ -232,6 +362,7 @@
         }
         
         function defl(L, d, H, w) {
+            if (H <= 0) return Infinity; // Handle zero tension
             const dm = d/1000, A = Math.PI*(dm/2)**2;
             const wc = STEEL*A*G, wi = w.length ? w.reduce((a,b)=>a+b)*G/L : 0;
             return ((wc+wi)*L*L)/(8*H*1000);
@@ -242,19 +373,49 @@
             const gpm=v('gpm');
             const base = v('pcb')+v('housing')+v('conn')+v('eth')+v('socket')+v('bulb');
             let delta = 0;
-            for(let it=0; it<3; it++) {
-                cl=[]; cw=[];
-                for(let i=0; i<n; i++) {
-                    const t=(i+1)/(n+1), x=L*t, dx=(x-L/2)/(L/2);
-                    const y = h-delta*(1-dx*dx);
-                    const targetH = getTargetH(x, L);
-                    const len = Math.max(0, y-targetH);
-                    cl.push(len);
-                    cw.push(base + (gpm/1000)*len);
+            
+            // Clear instance data
+            instanceData = [];
+            
+            // Handle zero tension case
+            if (H <= 0) {
+                delta = h; // Cable sags to ground
+            } else {
+                for(let it=0; it<3; it++) {
+                    cl=[]; cw=[];
+                    for(let i=0; i<n; i++) {
+                        const t=(i+1)/(n+1), x=L*t, dx=(x-L/2)/(L/2);
+                        const y = h-delta*(1-dx*dx);
+                        const targetH = getTargetH(x, L);
+                        const len = Math.max(0, y-targetH);
+                        cl.push(len);
+                        cw.push(base + (gpm/1000)*len);
+                    }
+                    if(n>0) delta = defl(L,d,H,cw);
                 }
-                if(n>0) delta = defl(L,d,H,cw);
             }
+            
+            // Build instance data for CSV export
+            for(let i=0; i<n; i++) {
+                const t=(i+1)/(n+1), x=L*t, dx=(x-L/2)/(L/2);
+                const y = h-delta*(1-dx*dx);
+                const targetH = getTargetH(x, L);
+                const len = cl[i] || 0;
+                const weight = cw[i] || 0;
+                
+                instanceData.push({
+                    id: i,
+                    x_position: x,
+                    start_y: y,
+                    end_y: targetH,
+                    cable_length: len,
+                    weight: weight
+                });
+            }
+            
             cid = n>0 ? Math.min(cid, n-1) : 0;
+            document.getElementById('id-input').value = cid;
+            document.getElementById('id-input').max = Math.max(0, n-1);
             updCable();
             draw();
         }
@@ -283,14 +444,14 @@
         function draw() {
             ctx.clearRect(0,0,920,460);
             const L=v('span'), h=v('height'), d=v('diam'), H=v('tension'), n=parseInt(v('instances'));
-            const delta = cw.length ? defl(L,d,H,cw) : 0;
-            const cl = h-delta, th = h+delta;
+            const delta = (H <= 0) ? h : (cw.length ? defl(L,d,H,cw) : 0);
+            const clVal = h-delta, th = h+delta;
             const LEFT=120, RIGHT=60, TOP=40, BOT=80;
             const bs = Math.min((920-LEFT-RIGHT)/L, (460-TOP-BOT)/th);
             const sc = bs*v('zoom'), px=v('pan-x')*L*sc, py=v('pan-y')*th*sc;
             const X = x => LEFT+x*sc+px;
             const Y = y => 460-BOT-y*sc+py;
-            const lx=X(0), rx=X(L), gy=Y(0), ty=Y(h), ly=Y(cl);
+            const lx=X(0), rx=X(L), gy=Y(0), ty=Y(h), ly=Y(clVal);
             const mode = document.querySelector('input[name="mode"]:checked').value;
             
             ctx.strokeStyle='#888'; ctx.lineWidth=2;
@@ -325,9 +486,26 @@
                 ctx.strokeStyle = i==cid?'blue':'gray'; ctx.lineWidth = i==cid?2:1;
                 ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx,by); ctx.stroke();
                 ctx.fillStyle='red'; ctx.beginPath(); ctx.arc(cx,cy,3,0,2*Math.PI); ctx.fill();
-                ctx.fillStyle = i==cid?'blue':'black'; ctx.font = i==cid?'bold 10px Arial':'10px Arial';
-                ctx.textAlign='center'; ctx.fillText(i,cx,cy-8);
+                
+                // Draw rotated ID labels (90 degrees, reading upward)
+                ctx.fillStyle = i==cid?'blue':'black'; 
+                ctx.font = i==cid?'bold 10px Arial':'10px Arial';
+                ctx.save();
+                ctx.translate(cx, cy - 10);
+                ctx.rotate(-Math.PI / 2); // Rotate 90 degrees counter-clockwise
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(i.toString(), 0, 0);
+                ctx.restore();
             }
+            
+            // Draw deflection text centered over the sag line, above the IDs
+            const centerX = X(L/2);
+            const centerY = Y(clVal); // Y position of lowest point of sag
+            ctx.fillStyle='blue'; 
+            ctx.font='bold 12px Arial';
+            ctx.textAlign='center';
+            ctx.fillText('Defl=' + delta.toFixed(2) + ' m', centerX, centerY - 35);
             
             ctx.strokeStyle='black'; ctx.fillStyle='black'; ctx.font='12px Arial'; ctx.lineWidth=1;
             ctx.beginPath(); ctx.moveTo(lx-35,ty); ctx.lineTo(lx-35,gy); ctx.stroke();
@@ -337,21 +515,74 @@
             ctx.beginPath(); ctx.moveTo(lx,sy); ctx.lineTo(rx,sy); ctx.stroke();
             ctx.textAlign='center'; ctx.fillText(L.toFixed(2)+' m',(lx+rx)/2,sy+15);
             
-            ctx.strokeStyle='blue'; ctx.setLineDash([4,2]);
-            ctx.beginPath(); ctx.moveTo(lx+30,ty); ctx.lineTo(lx+30,ly); ctx.stroke(); ctx.setLineDash([]);
-            ctx.fillStyle='blue'; ctx.textAlign='left'; ctx.fillText('Defl='+delta.toFixed(2)+' m',lx+36,(ty+ly)/2);
-            
             ctx.strokeStyle='black'; ctx.setLineDash([4,2]);
             ctx.beginPath(); ctx.moveTo(rx+30,gy); ctx.lineTo(rx+30,ly); ctx.stroke(); ctx.setLineDash([]);
-            ctx.fillStyle='black'; ctx.fillText('Clear='+cl.toFixed(2)+' m',rx+36,(gy+ly)/2);
+            ctx.fillStyle='black'; ctx.textAlign='left'; ctx.fillText('Clear='+clVal.toFixed(2)+' m',rx+36,(gy+ly)/2);
         }
         
-        function prevId() { const n=parseInt(v('instances')); if(n>0) { cid=(cid-1+n)%n; document.getElementById('curr-id').textContent=cid; updCable(); draw(); }}
-        function nextId() { const n=parseInt(v('instances')); if(n>0) { cid=(cid+1)%n; document.getElementById('curr-id').textContent=cid; updCable(); draw(); }}
+        function setId(newId) {
+            const n = parseInt(v('instances'));
+            if (n > 0) {
+                cid = Math.max(0, Math.min(newId, n - 1));
+                document.getElementById('id-input').value = cid;
+                updCable();
+                draw();
+            }
+        }
+        
+        function prevId() { 
+            const n = parseInt(v('instances')); 
+            if (n > 0) { 
+                cid = (cid - 1 + n) % n; 
+                document.getElementById('id-input').value = cid;
+                updCable(); 
+                draw(); 
+            }
+        }
+        
+        function nextId() { 
+            const n = parseInt(v('instances')); 
+            if (n > 0) { 
+                cid = (cid + 1) % n; 
+                document.getElementById('id-input').value = cid;
+                updCable(); 
+                draw(); 
+            }
+        }
+        
+        // ID input handler
+        document.getElementById('id-input').addEventListener('input', function() {
+            const n = parseInt(v('instances'));
+            let val = parseInt(this.value) || 0;
+            if (val < 0) val = 0;
+            if (val >= n) val = n - 1;
+            setId(val);
+        });
         
         function save() {
-            const s = {span:v('span'),height:v('height'),diam:v('diam'),tension:v('tension'),instances:v('instances'),
-                bulbH:v('bulb-h'),gpm:v('gpm'),pcb:v('pcb'),housing:v('housing'),conn:v('conn'),eth:v('eth'),socket:v('socket'),bulb:v('bulb')};
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const s = {
+                span: v('span'),
+                height: v('height'),
+                diam: v('diam'),
+                tension: v('tension'),
+                instances: v('instances'),
+                mode: mode,
+                bulbH: v('bulb-h'),
+                curveAmp: v('curve-amp'),
+                curveOffset: v('curve-offset'),
+                curveFreq: v('curve-freq'),
+                curveBase: v('curve-base'),
+                gpm: v('gpm'),
+                bulbParts: {
+                    pcb: v('pcb'),
+                    housing: v('housing'),
+                    conn: v('conn'),
+                    eth: v('eth'),
+                    socket: v('socket'),
+                    bulb: v('bulb')
+                }
+            };
             const b = new Blob([JSON.stringify(s,null,2)],{type:'application/json'});
             const a = document.createElement('a');
             a.href = URL.createObjectURL(b); a.download = 'cable-sag.json'; a.click();
@@ -367,36 +598,50 @@
                         
                         // Handle both web format and Python format
                         document.getElementById('span').value = s.span;
+                        document.getElementById('span-num').value = s.span;
                         document.getElementById('height').value = s.height;
+                        document.getElementById('height-num').value = s.height;
                         document.getElementById('diam').value = s.diameter || s.diam;
+                        document.getElementById('diam-num').value = s.diameter || s.diam;
                         document.getElementById('tension').value = s.tension;
+                        document.getElementById('tension-num').value = s.tension;
                         document.getElementById('instances').value = s.instances;
+                        document.getElementById('instances-num').value = s.instances;
                         
                         // Handle mode
+                        let mode = 'flat';
                         if (s.bulb_cable_mode !== undefined) {
-                            // Python format: 0=flat, 1=curve
-                            const mode = s.bulb_cable_mode === 0 ? 'flat' : 'curve';
-                            document.querySelector(`input[name="mode"][value="${mode}"]`).checked = true;
-                            document.getElementById('curve-ctrl').style.display = mode === 'curve' ? 'block' : 'none';
+                            mode = s.bulb_cable_mode === 0 ? 'flat' : 'curve';
                         } else if (s.mode) {
-                            // Web format
-                            document.querySelector(`input[name="mode"][value="${s.mode}"]`).checked = true;
-                            document.getElementById('curve-ctrl').style.display = s.mode === 'curve' ? 'block' : 'none';
+                            mode = s.mode;
                         }
+                        document.querySelector(`input[name="mode"][value="${mode}"]`).checked = true;
+                        updateModeVisibility(mode);
                         
                         // Bulb height
-                        document.getElementById('bulb-h').value = s.bulbH || s.bulb_height || 2;
+                        const bulbH = s.bulbH || s.bulb_height || 2;
+                        document.getElementById('bulb-h').value = bulbH;
+                        document.getElementById('bulb-h-num').value = bulbH;
                         
                         // Curve parameters
-                        document.getElementById('curve-amp').value = s.curveAmp || s.curve_amplitude || 3;
-                        document.getElementById('curve-offset').value = s.curveOffset || s.curve_offset_x || 0;
-                        document.getElementById('curve-freq').value = s.curveFreq || s.curve_frequency || 1;
-                        document.getElementById('curve-base').value = s.curveBase || s.curve_base_height || 1;
+                        const curveAmp = s.curveAmp || s.curve_amplitude || 3;
+                        const curveOffset = s.curveOffset || s.curve_offset_x || 0;
+                        const curveFreq = s.curveFreq || s.curve_frequency || 1;
+                        const curveBase = s.curveBase || s.curve_base_height || 1;
+                        
+                        document.getElementById('curve-amp').value = curveAmp;
+                        document.getElementById('curve-amp-num').value = curveAmp;
+                        document.getElementById('curve-offset').value = curveOffset;
+                        document.getElementById('curve-offset-num').value = curveOffset;
+                        document.getElementById('curve-freq').value = curveFreq;
+                        document.getElementById('curve-freq-num').value = curveFreq;
+                        document.getElementById('curve-base').value = curveBase;
+                        document.getElementById('curve-base-num').value = curveBase;
                         
                         // Grams per meter
                         document.getElementById('gpm').value = s.gpm || s.gramsPerMeter || s.grams_per_meter || 50;
                         
-                        // Bulb parts - handle both formats
+                        // Bulb parts
                         const parts = s.bulbParts || s.bulb_parts || {};
                         document.getElementById('pcb').value = parts.pcb || parts.PCB || 0.05;
                         document.getElementById('housing').value = parts.housing || parts.Housing || 0.12;
@@ -417,29 +662,69 @@
             inp.click();
         }
         
-        ['span','height','diam','tension','instances','bulb-h'].forEach((id,i) => {
-            const el = document.getElementById(id);
-            el.addEventListener('input', () => { upd('v'+(i+1), el.value); calc(); });
-        });
+        function exportCSV() {
+            if (instanceData.length === 0) {
+                alert('No instance data to export. Please ensure you have at least 1 instance.');
+                return;
+            }
+            
+            // Build CSV content
+            const headers = ['ID', 'X_Position_m', 'Start_Y_m', 'End_Y_m', 'Cable_Length_m', 'Weight_kg'];
+            let csvContent = headers.join(',') + '\n';
+            
+            instanceData.forEach(inst => {
+                const row = [
+                    inst.id,
+                    inst.x_position.toFixed(4),
+                    inst.start_y.toFixed(4),
+                    inst.end_y.toFixed(4),
+                    inst.cable_length.toFixed(4),
+                    inst.weight.toFixed(4)
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            // Create and download file
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = 'cable-sag-instances.csv';
+            a.click();
+        }
         
-        ['curve-amp','curve-offset','curve-freq','curve-base'].forEach((id,i) => {
-            const el = document.getElementById(id);
-            el.addEventListener('input', () => { upd('v'+(i+10), el.value); calc(); });
-        });
+        function updateModeVisibility(mode) {
+            const isCurve = mode === 'curve';
+            document.getElementById('flat-ctrl').style.display = isCurve ? 'none' : 'block';
+            document.getElementById('curve-ctrl').style.display = isCurve ? 'block' : 'none';
+        }
         
+        // Setup slider/number sync for main controls
+        syncInputs('span', 'span-num');
+        syncInputs('height', 'height-num');
+        syncInputs('diam', 'diam-num');
+        syncInputs('tension', 'tension-num');
+        syncInputs('instances', 'instances-num');
+        syncInputs('bulb-h', 'bulb-h-num');
+        syncInputs('curve-amp', 'curve-amp-num');
+        syncInputs('curve-offset', 'curve-offset-num');
+        syncInputs('curve-freq', 'curve-freq-num');
+        syncInputs('curve-base', 'curve-base-num');
+        
+        // Setup slider/number sync for view controls
+        syncViewInputs('pan-x', 'pan-x-num');
+        syncViewInputs('pan-y', 'pan-y-num');
+        syncViewInputs('zoom', 'zoom-num');
+        
+        // Mode radio buttons
         document.querySelectorAll('input[name="mode"]').forEach(radio => {
             radio.addEventListener('change', () => {
-                const isCurve = document.querySelector('input[name="mode"]:checked').value === 'curve';
-                document.getElementById('curve-ctrl').style.display = isCurve ? 'block' : 'none';
+                const mode = document.querySelector('input[name="mode"]:checked').value;
+                updateModeVisibility(mode);
                 calc();
             });
         });
         
-        ['pan-x','pan-y','zoom'].forEach((id,i) => {
-            const el = document.getElementById(id);
-            el.addEventListener('input', () => { upd('v'+(i+7), el.value); draw(); });
-        });
-        
+        // Bulb part inputs
         ['pcb','housing','conn','eth','socket','bulb','gpm'].forEach(id => {
             document.getElementById(id).addEventListener('input', calc);
         });
